@@ -1,0 +1,83 @@
+{
+  "name": "@miint-sunny/dsh-plugin-sync",
+  "version": "0.4.0",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Sync DeepSeek Harness desktop plugins between two Macs",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "scripts/detached-apply.sh",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('lib', { recursive: true, force: true })\" && tsc -p tsconfig.build.json && tsc -p tsconfig.client.json && node scripts/wrap-client.mjs",
+    "check": "tsc -p tsconfig.json && pnpm run test && pnpm pack --dry-run",
+    "test": "pnpm run build && node scripts/test.mjs",
+    "prepack": "pnpm run build",
+    "export:public": "node scripts/public-release.mjs export",
+    "public:check": "node scripts/public-release.mjs check",
+    "public:sync": "node scripts/public-release.mjs sync"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.1",
+    "@types/node": "24.13.3",
+    "@types/react": "18.3.28",
+    "dsh-ui-guard": "https://github.com/Miint-Sunny/dsh-ui-guard/releases/download/v0.1.0/dsh-ui-guard-0.1.0.tgz",
+    "esbuild": "0.28.2",
+    "react": "18.3.1",
+    "typescript": "5.9.2"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.1-rc.5 <0.3.0-0"
+  },
+  "packageManager": "pnpm@11.28.5",
+  "dependencies": {
+    "yaml": "2.9.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Miint-Sunny/dsh-plugin-sync.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Miint-Sunny/dsh-plugin-sync/issues"
+  },
+  "homepage": "https://github.com/Miint-Sunny/dsh-plugin-sync#readme"
+}

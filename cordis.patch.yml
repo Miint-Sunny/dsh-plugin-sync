@@ -1,0 +1,3 @@
+- insert:
+    - id: dsh-plugin-sync
+      name: '@miint-sunny/dsh-plugin-sync'

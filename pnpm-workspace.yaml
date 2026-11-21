@@ -1,0 +1,4 @@
+# esbuild runs from its @esbuild/<platform> package and does not need its install script.
+# Without a decision here, pnpm 11 ends `pnpm install` in a fresh clone with ERR_PNPM_IGNORED_BUILDS (exit code 1).
+allowBuilds:
+  esbuild: false
