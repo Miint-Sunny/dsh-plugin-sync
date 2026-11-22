@@ -300,6 +300,28 @@ test('a file: dependency outside local-plugins is refused', async t => {
   }), /local-plugins/)
 })
 
+test('a patch whose selector names an exported plugin without a version is exported', async t => {
+  const data = fixture(t)
+  writeFileSync(join(data.profileDir, 'patches', 'unversioned.patch'), 'diff --git a/lib/x.js b/lib/x.js\n')
+  writeFileSync(join(data.profileDir, 'pnpm-workspace.yaml'), 'patchedDependencies:\n  allowed-npm: patches/unversioned.patch\n  fixture-private-b: patches/private-b.patch\n')
+  const { snapshot } = await exportSnapshot({
+    profileDir: data.profileDir,
+    outputDir: join(data.root, 'snapshot'),
+    machine: 'source-mac',
+    machineId: 'source-mac',
+    desktopVersion: '0.2.1-rc.5',
+    createdAt: '2026-10-31T12:00:00.000Z',
+    excluded: PRIVATE_PLUGINS,
+    catalog: catalogFor(data.profileDir),
+    packer: async (_source, destination) => {
+      writeFileSync(join(destination, 'packed-link-3.0.0.tgz'), readFileSync(data.linkedTarball))
+      return { file: 'packed-link-3.0.0.tgz', integrity: 'sha512-packed-link', commit: COMMIT }
+    },
+  })
+  assert.deepEqual(snapshot.profiles.desktop.workspace.patchedDependencies, { 'allowed-npm': 'patches/unversioned.patch' })
+  assert.deepEqual(Object.keys(snapshot.profiles.desktop.patches), ['unversioned.patch'])
+})
+
 test('component switches export only for rows a bundle of an exported plugin declares', async t => {
   const data = fixture(t)
   writeFileSync(join(data.profileDir, 'cordis.patch.yml'), [

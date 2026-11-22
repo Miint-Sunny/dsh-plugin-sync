@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { stageApplyPlan } from '../lib/core/apply.js'
+import { stageApplyPlan, verifyApplied } from '../lib/core/apply.js'
 import { validateSnapshot } from '../lib/core/plan.js'
 import { packageNameFromKey } from '../lib/core/util.js'
 
@@ -63,4 +63,26 @@ test('XS-012 packageNameFromKey drops the version, including a peer suffix, and 
     ['@scope/pkg@1.0.0(@types/react@18.3.1)', '@scope/pkg'],
   ]
   for (const [key, name] of cases) assert.equal(packageNameFromKey(key), name, key)
+})
+
+test('after applying, the patch check looks in the directory of the plugin whose selector has no version', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'plugin-sync-package-key-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  for (const name of UNVERSIONED) {
+    const profile = join(root, name.replace('/', '-'))
+    const manifest = { dependencies: { [name]: '1.0.0' } }
+    mkdirSync(join(profile, 'node_modules', name, 'lib'), { recursive: true })
+    writeFileSync(join(profile, 'package.json'), JSON.stringify(manifest))
+    writeFileSync(join(profile, 'pnpm-lock.yaml'), "lockfileVersion: '9.0'\n")
+    writeFileSync(join(profile, 'node_modules', name, 'package.json'), JSON.stringify({ name, version: '1.0.0' }))
+    const plan = {
+      manifest,
+      plugins: [{ name, version: '1.0.0' }],
+      workspaceYaml: `patchedDependencies:\n  "${name}": patches/x.patch\n`,
+      patches: { 'x.patch': '// dsh-launcher patch\n+++ b/lib/x.js\n' },
+    }
+    await assert.rejects(verifyApplied(profile, plan), /安装后未找到带 dsh-launcher patch 标记的补丁目标/)
+    writeFileSync(join(profile, 'node_modules', name, 'lib', 'x.js'), '// dsh-launcher patch\n')
+    await verifyApplied(profile, plan)
+  }
 })
