@@ -185,15 +185,16 @@ test('state preserves a saved exclusion across either package name and an explic
   }
 })
 
-test('preferences change only the given fields, migrate the first format, and refuse invalid values without changes', async t => {
+test('preferences change only the given fields and refuse invalid values without changes', async t => {
   const fixture = hostFixture(t, { dependencies: { alpha: '1.0.0' }, lockfile: ALPHA_LOCK })
   authorize(fixture)
   const path = join(fixture.dshHome, 'plugin-sync', 'preferences.json')
   mkdirSync(join(fixture.dshHome, 'plugin-sync'), { recursive: true })
-  writeFileSync(path, JSON.stringify({ format: 'dsh-plugin-sync/preferences-1', machineName: '旧名字', repository: '', exportTarget: 'zip', scope: { alpha: false, beta: true } }))
-  const migrated = await get(fixture, '/dsh-plugin-sync/state')
-  assert.deepEqual(migrated.json.preferences, { format: 'dsh-plugin-sync/preferences-2', machineName: '旧名字', repository: '', exportTarget: 'zip', exportExcluded: ['alpha'] })
-  assert.equal(migrated.json.plugins[0].exported, false)
+  const saved = { format: 'dsh-plugin-sync/preferences-2', machineName: '旧名字', repository: '', exportTarget: 'zip', exportExcluded: ['alpha'] }
+  writeFileSync(path, JSON.stringify(saved))
+  const loaded = await get(fixture, '/dsh-plugin-sync/state')
+  assert.deepEqual(loaded.json.preferences, saved)
+  assert.equal(loaded.json.plugins[0].exported, false)
   const excluded = await setPreferences(fixture, { exportExcluded: ['gamma', 'alpha', 'alpha'] })
   assert.deepEqual([excluded.machineName, excluded.exportExcluded], ['旧名字', ['alpha', 'gamma']])
   const renamed = await setPreferences(fixture, { machineName: '  Test Mac A ' })

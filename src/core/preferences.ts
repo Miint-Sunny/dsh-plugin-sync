@@ -46,19 +46,8 @@ export function defaultPreferences(): PluginSyncPreferences {
   return { format: 'dsh-plugin-sync/preferences-2', repository: '', exportTarget: 'zip', exportExcluded: [] }
 }
 
-function migrateFirstVersion(value: any): unknown {
-  const scope = value.scope !== null && typeof value.scope === 'object' && !Array.isArray(value.scope) ? value.scope : {}
-  return {
-    format: 'dsh-plugin-sync/preferences-2',
-    ...(typeof value.machineName === 'string' && value.machineName.trim() !== '' ? { machineName: value.machineName } : {}),
-    repository: typeof value.repository === 'string' ? value.repository : '',
-    exportTarget: value.exportTarget === 'git' ? 'git' : 'zip',
-    exportExcluded: Object.entries(scope).filter(([, enabled]) => enabled === false).map(([name]) => name),
-  }
-}
-
 /**
- * Reads the preferences file, migrating `preferences-1` (a `scope` of per-plugin switches) on read.
+ * Reads the preferences file.
  * @param path - preferences file.
  * @param allowFileForTests - accept `file://` repositories.
  * @returns the stored preferences, or defaults when the file is missing.
@@ -71,7 +60,7 @@ export async function readPreferencesFile(path: string, allowFileForTests = fals
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return defaultPreferences()
     throw error
   }
-  return validatePreferences(value?.format === 'dsh-plugin-sync/preferences-1' ? migrateFirstVersion(value) : value, allowFileForTests)
+  return validatePreferences(value, allowFileForTests)
 }
 
 async function writeValidated(path: string, validated: PluginSyncPreferences): Promise<PluginSyncPreferences> {
